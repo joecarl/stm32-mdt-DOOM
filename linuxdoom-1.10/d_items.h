@@ -1,4 +1,4 @@
-// Emacs style mode select   -*- C++ -*- 
+// Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
 // $Id:$
@@ -15,10 +15,10 @@
 // for more details.
 //
 // DESCRIPTION:
+
 //	Items: key cards, artifacts, weapon, ammunition.
 //
 //-----------------------------------------------------------------------------
-
 
 #ifndef __D_ITEMS__
 #define __D_ITEMS__
@@ -29,20 +29,19 @@
 #pragma interface
 #endif
 
-
 // Weapon info: sprite frames, ammunition use.
 typedef struct
 {
-    ammotype_t	ammo;
-    int		upstate;
-    int		downstate;
-    int		readystate;
-    int		atkstate;
-    int		flashstate;
+	ammotype_t ammo;
+	int upstate;
+	int downstate;
+	int readystate;
+	int atkstate;
+	int flashstate;
 
 } weaponinfo_t;
 
-extern  weaponinfo_t    weaponinfo[NUMWEAPONS];
+extern weaponinfo_t weaponinfo[NUMWEAPONS];
 
 #endif
 //-----------------------------------------------------------------------------

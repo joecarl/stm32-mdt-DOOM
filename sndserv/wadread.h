@@ -1,4 +1,4 @@
-// Emacs style mode select   -*- C++ -*- 
+// Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
 // $Id: wadread.h,v 1.3 1997/01/30 19:54:23 b1 Exp $
@@ -44,7 +44,7 @@
 // Must be called before any calls to  loadlump() or getsfx().
 //
 
-void openwad(char* wadname);
+void openwad(char *wadname);
 
 //
 //  Gets a sound effect from the wad file.  The pointer points to the
@@ -54,9 +54,8 @@ void openwad(char* wadname);
 //  0x80's.  Returns the data length in len.
 //
 
-void*
-getsfx
-( char*		sfxname,
-  int*		len );
+void *
+getsfx(char *sfxname,
+	   int *len);
 
 #endif

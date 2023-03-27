@@ -6,19 +6,17 @@
 #include <dos.h>
 #include "doomnet.h"
 
-//#include "serstr.h"
-#include "ser_frch.h"		// FRENCH VERSION
+// #include "serstr.h"
+#include "ser_frch.h" // FRENCH VERSION
 
 #define DOOM2
 
-extern	int	myargc;
-extern	char **myargv;
+extern int myargc;
+extern char **myargv;
 
-doomcom_t	doomcom;
-int			vectorishooked;
-void interrupt (*olddoomvect) (void);
-
-
+doomcom_t doomcom;
+int vectorishooked;
+void interrupt (*olddoomvect)(void);
 
 /*
 =================
@@ -32,17 +30,16 @@ void interrupt (*olddoomvect) (void);
 =================
 */
 
-int CheckParm (char *check)
+int CheckParm(char *check)
 {
-	int             i;
+	int i;
 
-	for (i = 1;i<myargc;i++)
-		if ( !stricmp(check,myargv[i]) )
+	for (i = 1; i < myargc; i++)
+		if (!stricmp(check, myargv[i]))
 			return i;
 
 	return 0;
 }
-
 
 /*
 =============
@@ -62,65 +59,61 @@ These fields in doomcom should be filled in before calling:
 =============
 */
 
-void LaunchDOOM (void)
+void LaunchDOOM(void)
 {
-	char	*newargs[99];
-	char	adrstring[10];
-	long  	flatadr;
-	int		p;
-	unsigned char	far	*vector;
+	char *newargs[99];
+	char adrstring[10];
+	long flatadr;
+	int p;
+	unsigned char far *vector;
 
-// prepare for DOOM
+	// prepare for DOOM
 	doomcom.id = DOOMCOM_ID;
 
-// hook an interrupt vector
-	p= CheckParm ("-vector");
+	// hook an interrupt vector
+	p = CheckParm("-vector");
 
 	if (p)
 	{
-		doomcom.intnum = sscanf ("0x%x",_argv[p+1]);
+		doomcom.intnum = sscanf("0x%x", _argv[p + 1]);
 	}
 	else
 	{
-		for (doomcom.intnum = 0x60 ; doomcom.intnum <= 0x66 ; doomcom.intnum++)
+		for (doomcom.intnum = 0x60; doomcom.intnum <= 0x66; doomcom.intnum++)
 		{
-			vector = *(char far * far *)(doomcom.intnum*4);
-			if ( !vector || *vector == 0xcf )
+			vector = *(char far *far *)(doomcom.intnum * 4);
+			if (!vector || *vector == 0xcf)
 				break;
 		}
 		if (doomcom.intnum == 0x67)
 		{
-			printf (STR_WARNING);
+			printf(STR_WARNING);
 			doomcom.intnum = 0x66;
 		}
 	}
-	printf (STR_COMM"\n",doomcom.intnum);
+	printf(STR_COMM "\n", doomcom.intnum);
 
-	olddoomvect = getvect (doomcom.intnum);
-	setvect (doomcom.intnum,NetISR);
+	olddoomvect = getvect(doomcom.intnum);
+	setvect(doomcom.intnum, NetISR);
 	vectorishooked = 1;
 
-// build the argument list for DOOM, adding a -net &doomcom
-	memcpy (newargs, myargv, (myargc+1)*2);
+	// build the argument list for DOOM, adding a -net &doomcom
+	memcpy(newargs, myargv, (myargc + 1) * 2);
 	newargs[myargc] = "-net";
-	flatadr = (long)_DS*16 + (unsigned)&doomcom;
-	sprintf (adrstring,"%lu",flatadr);
-	newargs[myargc+1] = adrstring;
-	newargs[myargc+2] = NULL;
+	flatadr = (long)_DS * 16 + (unsigned)&doomcom;
+	sprintf(adrstring, "%lu", flatadr);
+	newargs[myargc + 1] = adrstring;
+	newargs[myargc + 2] = NULL;
 
-//	spawnv  (P_WAIT, "m:\\newdoom\\doom", newargs);
-	if (!access("doom2.exe",0))
-		spawnv  (P_WAIT, "doom2", newargs);
+	//	spawnv  (P_WAIT, "m:\\newdoom\\doom", newargs);
+	if (!access("doom2.exe", 0))
+		spawnv(P_WAIT, "doom2", newargs);
 	else
-		spawnv  (P_WAIT, "doom", newargs);
+		spawnv(P_WAIT, "doom", newargs);
 
-	#ifdef DOOM2
-	printf (STR_RETURNED"\n");
-	#else
-	printf ("Returned from DOOM\n");
-	#endif
-
-
+#ifdef DOOM2
+	printf(STR_RETURNED "\n");
+#else
+	printf("Returned from DOOM\n");
+#endif
 }
-
-

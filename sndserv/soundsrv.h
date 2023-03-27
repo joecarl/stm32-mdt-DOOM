@@ -1,4 +1,4 @@
-// Emacs style mode select   -*- C++ -*- 
+// Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
 // $Id: soundsrv.h,v 1.3 1997/01/29 22:40:44 b1 Exp $
@@ -28,29 +28,24 @@
 //
 //
 // DESCRIPTION:
-//	UNIX soundserver, separate process. 
+//	UNIX soundserver, separate process.
 //
 //-----------------------------------------------------------------------------
 
 #ifndef __SNDSERVER_H__
 #define __SNDSERVER_H__
 
-#define SAMPLECOUNT		512
-#define MIXBUFFERSIZE	(SAMPLECOUNT*2*2)
-#define SPEED			11025
-
+#define SAMPLECOUNT 512
+#define MIXBUFFERSIZE (SAMPLECOUNT * 2 * 2)
+#define SPEED 11025
 
 void I_InitMusic(void);
 
-void
-I_InitSound
-( int		samplerate,
-  int		samplesound );
+void I_InitSound(int samplerate,
+				 int samplesound);
 
-void
-I_SubmitOutputBuffer
-( void*		samples,
-  int		samplecount );
+void I_SubmitOutputBuffer(void *samples,
+						  int samplecount);
 
 void I_ShutdownSound(void);
 void I_ShutdownMusic(void);

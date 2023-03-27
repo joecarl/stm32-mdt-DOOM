@@ -1,4 +1,4 @@
-// Emacs style mode select   -*- C++ -*- 
+// Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
 // $Id:$
@@ -22,7 +22,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
+	rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
 
 
 #ifdef __GNUG__
@@ -30,28 +30,20 @@ rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
 #endif
 #include "m_swap.h"
 
-
 // Not needed with big endian.
 #ifndef __BIG_ENDIAN__
 
 // Swap 16bit, that is, MSB and LSB byte.
 unsigned short SwapSHORT(unsigned short x)
 {
-    // No masking with 0xFF should be necessary. 
-    return (x>>8) | (x<<8);
+	// No masking with 0xFF should be necessary.
+	return (x >> 8) | (x << 8);
 }
 
 // Swapping 32bit.
-unsigned long SwapLONG( unsigned long x)
+unsigned long SwapLONG(unsigned long x)
 {
-    return
-	(x>>24)
-	| ((x>>8) & 0xff00)
-	| ((x<<8) & 0xff0000)
-	| (x<<24);
+	return (x >> 24) | ((x >> 8) & 0xff00) | ((x << 8) & 0xff0000) | (x << 24);
 }
 
-
 #endif
-
-
