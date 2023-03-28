@@ -18,8 +18,7 @@
 // $Log:$
 //
 // DESCRIPTION:
-//	Switches, bu
-ttons. Two-state animation. Exits.
+//	Switches, buttons. Two-state animation. Exits.
 //
 //-----------------------------------------------------------------------------
 
