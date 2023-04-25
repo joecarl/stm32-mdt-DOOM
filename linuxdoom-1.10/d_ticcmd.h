@@ -1,3 +1,11 @@
+/**
+ * MOD
+ * add signed to forwardmove and sidemove 
+ * (apparently stm cube ide treats them as unsigned by default)
+ * so it caused backwards movement to be an extremely fast forward move, 
+ * (same applies to left right move) at P_MovePlayer
+ * -fsigned-char could be another option to fix the issue
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -35,8 +43,8 @@
 // plus a checksum for internal state consistency.
 typedef struct
 {
-	char forwardmove;  // *2048 for move
-	char sidemove;	   // *2048 for move
+	signed char forwardmove;  // *2048 for move
+	signed char sidemove;     // *2048 for move
 	short angleturn;   // <<16 for angle delta
 	short consistancy; // checks for net game
 	byte chatchar;

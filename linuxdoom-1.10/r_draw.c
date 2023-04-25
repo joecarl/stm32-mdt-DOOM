@@ -1,3 +1,7 @@
+/**
+ * MOD
+ * place ylookup and columnofs at ccmram section
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -62,8 +66,8 @@ int scaledviewwidth;
 int viewheight;
 int viewwindowx;
 int viewwindowy;
-byte *ylookup[MAXHEIGHT];
-int columnofs[MAXWIDTH];
+byte *ylookup[MAXHEIGHT] __attribute__((section(".ccmram")));
+int columnofs[MAXWIDTH] __attribute__((section(".ccmram")));
 
 // Color tables for different players,
 //  translate a limited part to another
@@ -131,6 +135,7 @@ void R_DrawColumn(void)
 		// Re-map color indices from wall texture column
 		//  using a lighting/special effects LUT.
 		*dest = dc_colormap[dc_source[(frac >> FRACBITS) & 127]];
+		//*dest = dc_source[(frac >> FRACBITS) & 127]; // this line will draw every texture with its original color
 
 		dest += SCREENWIDTH;
 		frac += fracstep;

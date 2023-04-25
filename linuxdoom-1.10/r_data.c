@@ -1,3 +1,11 @@
+/**
+ * MOD
+ * comment out Z_Free
+ * fix byte alignment issue at stm compiler (boolean masked --> int masked)
+ * (stm compiled used 2 bytes for boolean, while 4 bytes were needed to align 
+ * correctly to the wad file data)
+ * #include <alloca.h> was commented out
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -41,7 +49,7 @@ static const char
 #include "r_sky.h"
 
 #ifdef LINUX
-#include <alloca.h>
+//#include <alloca.h>
 #endif
 
 #include "r_data.h"
@@ -79,7 +87,8 @@ typedef struct
 typedef struct
 {
 	char name[8];
-	boolean masked;
+	//boolean masked; //this aligned to 2 bytes on stm32, weird because sizeof reported 32bytes...
+	int masked; //this was the fix...
 	short width;
 	short height;
 	void **columndirectory; // OBSOLETE
@@ -426,7 +435,7 @@ void R_InitTextures(void)
 		strncpy(name, name_p + i * 8, 8);
 		patchlookup[i] = W_CheckNumForName(name);
 	}
-	Z_Free(names);
+	//Z_Free(names);
 
 	// Load the map texture definitions from textures.lmp.
 	// The data is contained in one or two lumps,
@@ -527,10 +536,11 @@ void R_InitTextures(void)
 
 		totalwidth += texture->width;
 	}
-
+/*
 	Z_Free(maptex1);
 	if (maptex2)
 		Z_Free(maptex2);
+*/
 
 	// Precalculate whatever possible.
 	for (i = 0; i < numtextures; i++)

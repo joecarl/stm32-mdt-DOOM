@@ -1,3 +1,7 @@
+/**
+ * MOD
+ * comment out Z_ChangeTag
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -627,7 +631,7 @@ void S_StopMusic(void)
 
 		I_StopSong(mus_playing->handle);
 		I_UnRegisterSong(mus_playing->handle);
-		Z_ChangeTag(mus_playing->data, PU_CACHE);
+		//Z_ChangeTag(mus_playing->data, PU_CACHE);
 
 		mus_playing->data = 0;
 		mus_playing = 0;

@@ -1,3 +1,10 @@
+/**
+ * MOD
+ * Some var sizes were reduced
+ * IdentifyVersion was reimplemented to use the harcoded wad version
+ * Z_Init call was priorized
+ * MDT_Init() andInitInfo() calls were added
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -109,9 +116,9 @@ FILE *debugfile;
 
 boolean advancedemo;
 
-char wadfile[1024];		// primary wad file
-char mapdir[1024];		// directory of development maps
-char basedefault[1024]; // default file
+//char wadfile[1024];		// primary wad file
+//char mapdir[1024];		// directory of development maps
+char basedefault[64]; // default file
 
 void D_CheckNetGame(void);
 void D_ProcessEvents(void);
@@ -514,6 +521,7 @@ void D_AddFile(char *file)
 	wadfiles[numwadfiles] = newfile;
 }
 
+#ifdef USE_WAD_FILE
 //
 // IdentifyVersion
 // Checks availability of IWAD files by name,
@@ -674,6 +682,20 @@ void IdentifyVersion(void)
 	// exit(1);
 	// I_Error ("Game mode indeterminate\n");
 }
+#else 
+void IdentifyVersion(void)
+{
+
+	printf("===========================================================================\n");
+	printf("=                          HARCODED WAD VERSION                           =\n");
+	printf("=                        Optimized for STM32F429I                         =\n");
+	printf("===========================================================================\n");
+	
+	gamemode = shareware;
+	D_AddFile("./doom1.wad");
+
+}
+#endif
 
 //
 // Find a Response File
@@ -748,6 +770,39 @@ void FindResponseFile(void)
 		}
 }
 
+#ifndef USE_PC_PORT
+void MDT_Init();
+#endif
+/**
+ * en la seccion CCMRAM eliminé "AT> FLASH" (estaba duplicada la memoria ccmram 
+ * en la flash :S, quiza porque es la manera que utiliza para almacenar el 
+ * valor inicial de las variables??... no se)
+ */
+/*
+#define MAXHEIGHT 832
+#define MAXWIDTH 1120
+#define MIXBUFFERSIZE (512 * 4)
+extern vissprite_t vissprites[MAXVISSPRITES];
+extern int viewangletox[FINEANGLES / 2];
+extern lighttable_t *scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
+extern lighttable_t *zlight[LIGHTLEVELS][MAXLIGHTZ];
+extern byte *ylookup[MAXHEIGHT];
+extern int columnofs[MAXWIDTH];
+extern drawseg_t drawsegs[MAXDRAWSEGS];
+extern signed short mixbuffer[MIXBUFFERSIZE];
+void InitCCMVars() {
+	memset(vissprites, 0, sizeof(vissprite_t) * MAXVISSPRITES);
+	memset(viewangletox, 0, sizeof(int) * FINEANGLES / 2);
+	memset(scalelight, 0, sizeof(lighttable_t*) * LIGHTLEVELS * MAXLIGHTSCALE);
+	memset(zlight, 0, sizeof(lighttable_t*) * LIGHTLEVELS * MAXLIGHTZ);
+	memset(ylookup, 0, sizeof(byte*) * MAXHEIGHT);
+	memset(columnofs, 0, sizeof(int) * MAXWIDTH);
+	memset(drawsegs, 0, sizeof(drawseg_t) * MAXDRAWSEGS);
+	memset(mixbuffer, 0, sizeof(signed short) * MIXBUFFERSIZE);
+}
+*/
+
+void InitInfo();
 //
 // D_DoomMain
 //
@@ -756,7 +811,8 @@ void D_DoomMain(void)
 	int p;
 	char file[256];
 
-	FindResponseFile();
+	//FindResponseFile();
+	//InitCCMVars();
 
 	IdentifyVersion();
 
@@ -832,12 +888,14 @@ void D_DoomMain(void)
 	if (devparm)
 		printf(D_DEVSTR);
 
+	/*
 	if (M_CheckParm("-cdrom"))
 	{
 		printf(D_CDROM);
 		mkdir("c:\\doomdata", 0);
 		strcpy(basedefault, "c:/doomdata/default.cfg");
 	}
+	*/
 
 	// turbo option
 	if ((p = M_CheckParm("-turbo")))
@@ -964,6 +1022,13 @@ void D_DoomMain(void)
 		autostart = true;
 	}
 
+	printf("Z_Init: Init zone memory allocation daemon. \n");
+	Z_Init();
+
+#ifndef USE_PC_PORT
+	MDT_Init();
+#endif
+
 	// init subsystems
 	printf("V_Init: allocate screens.\n");
 	V_Init();
@@ -971,8 +1036,7 @@ void D_DoomMain(void)
 	printf("M_LoadDefaults: Load system defaults.\n");
 	M_LoadDefaults(); // load before initing other systems
 
-	printf("Z_Init: Init zone memory allocation daemon. \n");
-	Z_Init();
+	InitInfo();
 
 	printf("W_Init: Init WADfiles.\n");
 	W_InitMultipleFiles(wadfiles);

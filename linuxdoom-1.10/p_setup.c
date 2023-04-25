@@ -1,3 +1,7 @@
+/**
+ * MOD
+ * comment out all Z_Free calls
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -138,7 +142,7 @@ void P_LoadVertexes(int lump)
 	}
 
 	// Free buffer memory.
-	Z_Free(data);
+	//Z_Free(data);
 }
 
 //
@@ -180,7 +184,7 @@ void P_LoadSegs(int lump)
 			li->backsector = 0;
 	}
 
-	Z_Free(data);
+	//Z_Free(data);
 }
 
 //
@@ -207,7 +211,7 @@ void P_LoadSubsectors(int lump)
 		ss->firstline = SHORT(ms->firstseg);
 	}
 
-	Z_Free(data);
+	//Z_Free(data);
 }
 
 //
@@ -239,7 +243,7 @@ void P_LoadSectors(int lump)
 		ss->thinglist = NULL;
 	}
 
-	Z_Free(data);
+	//Z_Free(data);
 }
 
 //
@@ -275,7 +279,7 @@ void P_LoadNodes(int lump)
 		}
 	}
 
-	Z_Free(data);
+	//Z_Free(data);
 }
 
 //
@@ -320,16 +324,18 @@ void P_LoadThings(int lump)
 			break;
 
 		// Do spawn all other stuff.
+		/*
 		mt->x = SHORT(mt->x);
 		mt->y = SHORT(mt->y);
 		mt->angle = SHORT(mt->angle);
 		mt->type = SHORT(mt->type);
 		mt->options = SHORT(mt->options);
+		*/
 
 		P_SpawnMapThing(mt);
 	}
 
-	Z_Free(data);
+	//Z_Free(data);
 }
 
 //
@@ -410,7 +416,7 @@ void P_LoadLineDefs(int lump)
 			ld->backsector = 0;
 	}
 
-	Z_Free(data);
+	//Z_Free(data);
 }
 
 //
@@ -440,7 +446,7 @@ void P_LoadSideDefs(int lump)
 		sd->sector = &sectors[SHORT(msd->sector)];
 	}
 
-	Z_Free(data);
+	//Z_Free(data);
 }
 
 //
@@ -455,8 +461,8 @@ void P_LoadBlockMap(int lump)
 	blockmap = blockmaplump + 4;
 	count = W_LumpLength(lump) / 2;
 
-	for (i = 0; i < count; i++)
-		blockmaplump[i] = SHORT(blockmaplump[i]);
+	//for (i = 0; i < count; i++)
+	//	blockmaplump[i] = SHORT(blockmaplump[i]);
 
 	bmaporgx = blockmaplump[0] << FRACBITS;
 	bmaporgy = blockmaplump[1] << FRACBITS;

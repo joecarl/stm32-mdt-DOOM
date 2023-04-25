@@ -1,3 +1,11 @@
+/**
+ * MOD
+ * this file took a lot of refactoring, some of it is not strightfoward to explain
+ * anyway, the main philosophy was to use the hardcoded wad compressed with brotli
+ * so it fits in the flash memory, thent extrat it to the sdram and have all data
+ * permanently loaded, this is the reaso why neither Z_Free nor Z_ChangeTag should
+ * ever be applied to the loaded wad data
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -32,7 +40,7 @@ static const char
 #include <malloc.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <alloca.h>
+//#include <alloca.h>
 #define O_BINARY 0
 #endif
 
@@ -58,6 +66,7 @@ void **lumpcache;
 
 #define strcmpi strcasecmp
 
+/*
 void strupr(char *s)
 {
 	while (*s)
@@ -76,6 +85,7 @@ int filelength(int handle)
 
 	return fileinfo.st_size;
 }
+*/
 
 void ExtractFileBase(char *path,
 					 char *dest)
@@ -123,6 +133,92 @@ void ExtractFileBase(char *path,
 
 int reloadlump;
 char *reloadname;
+#ifdef USE_WAD_FILE 
+unsigned char waddata_comp[25 * 1024 * 1024];
+#else
+#include "waddata_comp.h"
+#endif
+
+unsigned char* waddata;
+
+#include <brotli/decode.h>
+#define CHUNK_SIZE 4096
+
+static void* owner;
+
+void* BrotliCustomAllocFunc(void* opaque, size_t size) {
+
+	//printf("--------------- Allocating %u bytes\n", size);
+	return Z_Malloc(size, PU_PURGELEVEL, &owner);
+}
+
+void BrotliCustomFreeFunc(void* opaque, void* address) {
+  
+	if (address == NULL) return;
+	//printf("--------------- Deallocating addr %u\n", address);
+	Z_Free(address);
+}
+
+static void DecompressWad() {
+
+	// Inicializar el estado de descompresión
+	BrotliDecoderState *state = BrotliDecoderCreateInstance(BrotliCustomAllocFunc, BrotliCustomFreeFunc, NULL); 
+	//BrotliDecoderState *state = BrotliDecoderCreateInstance(NULL, NULL, NULL); 
+	if (!state)
+	{
+		I_Error("No se pudo crear el estado de descompresión de Brotli");
+	}
+	size_t available_out = 4 * 1024 * 1024 + 5 * 1024;
+
+	// Crear un búfer de entrada y uno de salida
+	uint8_t *in = waddata_comp;
+	uint8_t *out = waddata = Z_Malloc(available_out, PU_STATIC, 0);
+
+	// Descomprimir los datos del archivo de entrada y escribirlos en el archivo de salida
+	size_t available_in = sizeof(waddata_comp);
+	//available_in = fread(in, 1, CHUNK_SIZE, input);
+	//printf("Leidos %u bytes\n", available_in);
+	uint8_t *next_in = in;
+	uint8_t *next_out = out;
+	size_t total_out = 0;
+	while (1)
+	{
+		BrotliDecoderResult res;
+		res = BrotliDecoderDecompressStream(state, &available_in, &next_in, &available_out, &next_out, &total_out);
+		if (res == BROTLI_DECODER_RESULT_ERROR)
+		{
+			I_Error("Error al descomprimir el archivo");
+		}
+		else if (res == BROTLI_DECODER_RESULT_NEEDS_MORE_OUTPUT)
+		{
+			
+			I_Error("Error BROTLI_DECODER_RESULT_NEEDS_MORE_OUTPUT");
+			size_t out_size = CHUNK_SIZE - available_out;
+			//fwrite(out, 1, out_size, output);
+			next_out = out;
+			available_out = CHUNK_SIZE;
+		}
+		else if (res == BROTLI_DECODER_RESULT_SUCCESS)
+		{
+			
+			//size_t out_size = CHUNK_SIZE - available_out;
+			printf("decompress_wad: Success! %u bytes\n", total_out);
+			//fwrite(out, 1, out_size, output);
+			
+			break;
+		}
+		else if (res == BROTLI_DECODER_RESULT_NEEDS_MORE_INPUT)
+		{
+			I_Error("Error BROTLI_DECODER_RESULT_NEEDS_MORE_INPUT");
+			//available_in = fread(in, 1, CHUNK_SIZE, input);
+			//next_in = in;
+		}
+	}
+
+	// Liberar la memoria utilizada por el estado de descompresión
+	BrotliDecoderDestroyInstance(state);
+
+}
 
 void W_AddFile(char *filename)
 {
@@ -146,28 +242,35 @@ void W_AddFile(char *filename)
 		reloadlump = numlumps;
 	}
 
+#ifdef USE_WAD_FILE
 	if ((handle = open(filename, O_RDONLY | O_BINARY)) == -1)
 	{
 		printf(" couldn't open %s\n", filename);
 		return;
 	}
 
+	fread(waddata_comp, 1, sizeof(waddata_comp), handle);
+#endif
+	DecompressWad();
 	printf(" adding %s\n", filename);
 	startlump = numlumps;
 
 	if (strcmpi(filename + strlen(filename) - 3, "wad"))
 	{
+		/*
 		// single lump file
 		fileinfo = &singleinfo;
 		singleinfo.filepos = 0;
 		singleinfo.size = LONG(filelength(handle));
 		ExtractFileBase(filename, singleinfo.name);
 		numlumps++;
+		*/
 	}
 	else
 	{
 		// WAD file
-		read(handle, &header, sizeof(header));
+		//read(handle, &header, sizeof(header));
+		header = *((wadinfo_t*) waddata);
 		if (strncmp(header.identification, "IWAD", 4))
 		{
 			// Homebrew levels?
@@ -183,12 +286,13 @@ void W_AddFile(char *filename)
 		header.numlumps = LONG(header.numlumps);
 		header.infotableofs = LONG(header.infotableofs);
 		length = header.numlumps * sizeof(filelump_t);
-		fileinfo = alloca(length);
-		lseek(handle, header.infotableofs, SEEK_SET);
-		read(handle, fileinfo, length);
+		//fileinfo = alloca(length);
+		//lseek(handle, header.infotableofs, SEEK_SET);
+		//read(handle, fileinfo, length);
+		lumpinfo = fileinfo = &(waddata[header.infotableofs]);
 		numlumps += header.numlumps;
 	}
-
+#if 0
 	// Fill in lumpinfo
 	lumpinfo = realloc(lumpinfo, numlumps * sizeof(lumpinfo_t));
 
@@ -209,6 +313,7 @@ void W_AddFile(char *filename)
 
 	if (reloadname)
 		close(handle);
+#endif
 }
 
 //
@@ -218,6 +323,7 @@ void W_AddFile(char *filename)
 //
 void W_Reload(void)
 {
+#ifdef USE_PC_PORT
 	wadinfo_t header;
 	int lumpcount;
 	lumpinfo_t *lump_p;
@@ -227,7 +333,7 @@ void W_Reload(void)
 	filelump_t *fileinfo;
 
 	if (!reloadname)
-		return;
+		return;//this function will always return since reloadname is almos harcoded to NULL
 
 	if ((handle = open(reloadname, O_RDONLY | O_BINARY)) == -1)
 		I_Error("W_Reload: couldn't open %s", reloadname);
@@ -247,14 +353,15 @@ void W_Reload(void)
 		 i < reloadlump + lumpcount;
 		 i++, lump_p++, fileinfo++)
 	{
-		if (lumpcache[i])
-			Z_Free(lumpcache[i]);
+		//if (lumpcache[i])
+		//	Z_Free(lumpcache[i]);
 
 		lump_p->position = LONG(fileinfo->filepos);
 		lump_p->size = LONG(fileinfo->size);
 	}
 
 	close(handle);
+#endif
 }
 
 //
@@ -278,7 +385,7 @@ void W_InitMultipleFiles(char **filenames)
 	numlumps = 0;
 
 	// will be realloced as lumps are added
-	lumpinfo = malloc(1);
+	//lumpinfo = malloc(1);
 
 	for (; *filenames; filenames++)
 		W_AddFile(*filenames);
@@ -294,6 +401,14 @@ void W_InitMultipleFiles(char **filenames)
 		I_Error("Couldn't allocate lumpcache");
 
 	memset(lumpcache, 0, size);
+
+	for (int i = 0; i < numlumps; i++) {
+
+		lumpinfo_t *lump_p;
+		lump_p = lumpinfo + i;
+		lumpcache[i] = &waddata[lump_p->position];
+
+	}
 }
 
 //
@@ -407,6 +522,9 @@ void W_ReadLump(int lump,
 
 	l = lumpinfo + lump;
 
+	memcpy(dest, &waddata[l->position], l->size);
+	return;
+/*
 	// ??? I_BeginRead ();
 
 	if (l->handle == -1)
@@ -429,6 +547,7 @@ void W_ReadLump(int lump,
 		close(handle);
 
 	// ??? I_EndRead ();
+*/
 }
 
 //
@@ -443,6 +562,8 @@ W_CacheLumpNum(int lump,
 	if ((unsigned)lump >= numlumps)
 		I_Error("W_CacheLumpNum: %i >= numlumps", lump);
 
+	return lumpcache[lump];
+	/*
 	if (!lumpcache[lump])
 	{
 		// read the lump in
@@ -458,6 +579,7 @@ W_CacheLumpNum(int lump,
 	}
 
 	return lumpcache[lump];
+	*/
 }
 
 //

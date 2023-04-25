@@ -1,3 +1,7 @@
+/**
+ * MOD
+ * return immediately at WI_unloadData
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -1640,6 +1644,7 @@ void WI_loadData(void)
 
 void WI_unloadData(void)
 {
+	return;
 	int i;
 	int j;
 

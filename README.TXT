@@ -1,3 +1,21 @@
+STM32-MDT-DOOM
+
+This is a port of DOOM for the STM32 microcontroller, it uses the 
+stm32-media-driver-toolkit library for the vga output, and brotli for
+compression stuff
+
+To install follow all the steps to create a project with usb support
+described at: 
+https://github.com/joecarl/stm32-media-driver-toolkit#running-the-examples-from-scratch
+then add this repository to the project, please only the linuxdoom-1.10 should be included
+into the build, the other folders (ipx, sersrc and sndserv should be ignored)
+The brotli sources shoul be placed into linuxdoom-1.10, (the needed brotli files are a 
+subset of the original sources and can be found in the releases assets)
+
+NOTE: Only the video is ported so far, the sound driver needs some thinking.
+
+
+The original README is shown below:
 
 Here it is, at long last.  The DOOM source code is released for your
 non-profit use.  You still need real DOOM data to work with this code.

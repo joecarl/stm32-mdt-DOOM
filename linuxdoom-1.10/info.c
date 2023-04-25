@@ -1,3 +1,8 @@
+/**
+ * MOD
+ * declare states and mobjinfo as const _states const _mobjinfo
+ * in order to copy it to the dynamic memory at InitInfo
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -129,7 +134,8 @@ void A_SpawnSound();
 void A_SpawnFly();
 void A_BrainExplode();
 
-state_t states[NUMSTATES] = {
+state_t *states;
+const state_t _states[NUMSTATES] = {
 	{SPR_TROO, 0, -1, {NULL}, S_NULL, 0, 0},				   // S_NULL
 	{SPR_SHTG, 4, 0, {A_Light0}, S_NULL, 0, 0},				   // S_LIGHTDONE
 	{SPR_PUNG, 0, 1, {A_WeaponReady}, S_PUNCH, 0, 0},		   // S_PUNCH
@@ -1099,7 +1105,8 @@ state_t states[NUMSTATES] = {
 	{SPR_TLP2, 32771, 4, {NULL}, S_TECH2LAMP, 0, 0}			   // S_TECH2LAMP4
 };
 
-mobjinfo_t mobjinfo[NUMMOBJTYPES] = {
+mobjinfo_t *mobjinfo;
+const mobjinfo_t _mobjinfo[NUMMOBJTYPES] = {
 
 	{
 		// MT_PLAYER
@@ -4799,3 +4806,15 @@ mobjinfo_t mobjinfo[NUMMOBJTYPES] = {
 		MF_NOBLOCKMAP, // flags
 		S_NULL		   // raisestate
 	}};
+
+#include "z_zone.h"
+
+void InitInfo() {
+
+	states = Z_Malloc(sizeof(_states), PU_STATIC, 0);
+	memcpy(states, _states, sizeof(_states));
+	
+	mobjinfo = Z_Malloc(sizeof(_mobjinfo), PU_STATIC, 0);
+	memcpy(mobjinfo, _mobjinfo, sizeof(_mobjinfo));
+
+}

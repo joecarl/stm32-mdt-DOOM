@@ -1,3 +1,7 @@
+/**
+ * MOD
+ * immediately return in G_SaveGame, just in case it could cause any harm
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -1215,6 +1219,7 @@ void G_SaveGame(int slot,
 
 void G_DoSaveGame(void)
 {
+	return;
 	char name[100];
 	char name2[VERSIONSIZE];
 	char *description;
@@ -1506,6 +1511,7 @@ void G_DeferedPlayDemo(char *name)
 
 void G_DoPlayDemo(void)
 {
+	//return;//returning here causes a hang in main menu screen
 	skill_t skill;
 	int i, episode, map;
 

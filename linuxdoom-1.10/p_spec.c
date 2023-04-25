@@ -1,3 +1,7 @@
+/**
+ * MOD
+ * use a safe loop condition at P_InitPicAnims
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -144,7 +148,8 @@ void P_InitPicAnims(void)
 
 	//	Init animation
 	lastanim = anims;
-	for (i = 0; animdefs[i].istexture != -1; i++)
+	//for (i = 0; animdefs[i].istexture != -1; i++)
+	for (i = 0; i < sizeof(animdefs) / sizeof(animdef_t); i++)
 	{
 		if (animdefs[i].istexture)
 		{

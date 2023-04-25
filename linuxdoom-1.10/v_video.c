@@ -1,3 +1,8 @@
+/**
+ * MOD
+ * add const to gammatable so it placed at flash memory
+ * use Z_Malloc at V_Init, so screens are allocated at sdram
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -43,7 +48,7 @@ byte *screens[5];
 int dirtybox[4];
 
 // Now where did these came from?
-byte gammatable[5][256] =
+const byte gammatable[5][256] =
 	{
 		{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
 		 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
@@ -152,6 +157,7 @@ void V_CopyRect(int srcx,
 				int desty,
 				int destscrn)
 {
+	//return;
 	byte *src;
 	byte *dest;
 
@@ -203,6 +209,8 @@ void V_DrawPatch(int x,
 		return;
 	}
 #endif
+
+	//scrn = 0;
 
 	if (!scrn)
 		V_MarkRect(x, y, SHORT(patch->width), SHORT(patch->height));
@@ -262,6 +270,7 @@ void V_DrawPatchFlipped(int x,
 	}
 #endif
 
+	//scrn = 0;
 	if (!scrn)
 		V_MarkRect(x, y, SHORT(patch->width), SHORT(patch->height));
 
@@ -366,6 +375,7 @@ void V_DrawBlock(int x,
 				 int height,
 				 byte *src)
 {
+	//return;
 	byte *dest;
 
 #ifdef RANGECHECK
@@ -375,6 +385,7 @@ void V_DrawBlock(int x,
 	}
 #endif
 
+	//scrn = 0;
 	V_MarkRect(x, y, width, height);
 
 	dest = screens[scrn] + y * SCREENWIDTH + x;
@@ -398,6 +409,7 @@ void V_GetBlock(int x,
 				int height,
 				byte *dest)
 {
+	//return;
 	byte *src;
 
 #ifdef RANGECHECK
@@ -407,6 +419,7 @@ void V_GetBlock(int x,
 	}
 #endif
 
+	//scrn = 0;
 	src = screens[scrn] + y * SCREENWIDTH + x;
 
 	while (height--)
@@ -417,6 +430,7 @@ void V_GetBlock(int x,
 	}
 }
 
+#include "z_zone.h"
 //
 // V_Init
 //
@@ -425,9 +439,10 @@ void V_Init(void)
 	int i;
 	byte *base;
 
-	// stick these in low dos memory on PCs
+	size_t size = SCREENWIDTH * SCREENHEIGHT * 4;
 
-	base = I_AllocLow(SCREENWIDTH * SCREENHEIGHT * 4);
+	base = Z_Malloc(size, PU_STATIC, 0);
+	memset(base, 0, size);
 
 	for (i = 0; i < 4; i++)
 		screens[i] = base + i * SCREENWIDTH * SCREENHEIGHT;

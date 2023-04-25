@@ -1,3 +1,8 @@
+/**
+ * MOD
+ * allocate visplanes and openings dynamically
+ * comment out Z_ChangeTag
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -47,14 +52,16 @@ planefunction_t ceilingfunc;
 
 // Here comes the obnoxious "visplane".
 #define MAXVISPLANES 128
-visplane_t visplanes[MAXVISPLANES];
+//visplane_t visplanes[MAXVISPLANES];
+visplane_t *visplanes;
 visplane_t *lastvisplane;
 visplane_t *floorplane;
 visplane_t *ceilingplane;
 
 // ?
 #define MAXOPENINGS SCREENWIDTH * 64
-short openings[MAXOPENINGS];
+//short openings[MAXOPENINGS];
+short *openings;
 short *lastopening;
 
 //
@@ -95,6 +102,11 @@ fixed_t cachedystep[SCREENHEIGHT];
 void R_InitPlanes(void)
 {
 	// Doh!
+	const size_t visplanes_size = sizeof(visplane_t) * MAXVISPLANES;
+	visplanes = Z_Malloc(visplanes_size, PU_STATIC, 0);
+	memset(visplanes, 0, visplanes_size);
+	openings = Z_Malloc(sizeof(short) * MAXOPENINGS, PU_STATIC, 0);
+	memset(openings, 0, sizeof(short) * MAXOPENINGS);
 }
 
 //
@@ -420,6 +432,6 @@ void R_DrawPlanes(void)
 						pl->bottom[x]);
 		}
 
-		Z_ChangeTag(ds_source, PU_CACHE);
+		//Z_ChangeTag(ds_source, PU_CACHE);
 	}
 }

@@ -1,3 +1,13 @@
+/**
+ * MOD
+ * some includes were commented out
+ * one attribute section ccmram was added
+ * vars vol_lookup channelleftvol_lookupchannel rightvol_lookup were commented out
+ * Z_Free(sfx); was commented
+ * return immediately at I_StartSound and I_UpdateSound
+ * itimer sig were commented
+ * reimplement I_InitSound and I_SoundSetTimer
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -29,7 +39,7 @@ static const char
 #include <stdarg.h>
 
 #include <math.h>
-
+#if 0
 #include <sys/time.h>
 #include <sys/types.h>
 
@@ -47,6 +57,7 @@ static const char
 // Timer stuff. Experimental.
 #include <time.h>
 #include <signal.h>
+#endif
 
 #include "z_zone.h"
 
@@ -107,7 +118,7 @@ int audio_fd;
 // Basically, samples from all active internal channels
 //  are modifed and added, and stored in the buffer
 //  that is submitted to the audio device.
-signed short mixbuffer[MIXBUFFERSIZE];
+signed short mixbuffer[MIXBUFFERSIZE] __attribute__((section(".ccmram")));
 
 // The channel step amount...
 unsigned int channelstep[NUM_CHANNELS];
@@ -139,12 +150,12 @@ int channelids[NUM_CHANNELS];
 int steptable[256];
 
 // Volume lookups.
-int vol_lookup[128 * 256];
+//int vol_lookup[128 * 256];
 
 // Hardware left and right channel volume lookup.
-int *channelleftvol_lookup[NUM_CHANNELS];
-int *channelrightvol_lookup[NUM_CHANNELS];
-
+//int *channelleftvol_lookup[NUM_CHANNELS];
+//int *channelrightvol_lookup[NUM_CHANNELS];
+#if 0
 //
 // Safe ioctl, convenience.
 //
@@ -163,6 +174,7 @@ void myioctl(int fd,
 		exit(-1);
 	}
 }
+#endif
 
 //
 // This function loads the sound data from the WAD lump,
@@ -226,7 +238,7 @@ getsfx(char *sfxname,
 		paddedsfx[i] = 128;
 
 	// Remove the cached lump.
-	Z_Free(sfx);
+	//Z_Free(sfx);
 
 	// Preserve padded length.
 	*len = paddedsize;
@@ -342,8 +354,8 @@ int addsfx(int sfxid,
 
 	// Get the proper lookup table piece
 	//  for this volume level???
-	channelleftvol_lookup[slot] = &vol_lookup[leftvol * 256];
-	channelrightvol_lookup[slot] = &vol_lookup[rightvol * 256];
+	//channelleftvol_lookup[slot] = &vol_lookup[leftvol * 256];
+	//channelrightvol_lookup[slot] = &vol_lookup[rightvol * 256];
 
 	// Preserve sound SFX id,
 	//  e.g. for avoiding duplicates of chainsaw.
@@ -386,9 +398,9 @@ void I_SetChannels()
 	// Generates volume lookup tables
 	//  which also turn the unsigned samples
 	//  into signed samples.
-	for (i = 0; i < 128; i++)
-		for (j = 0; j < 256; j++)
-			vol_lookup[i * 256 + j] = (i * (j - 128) * 256) / 127;
+	//for (i = 0; i < 128; i++)
+	//	for (j = 0; j < 256; j++)
+	//		vol_lookup[i * 256 + j] = (i * (j - 128) * 256) / 127;
 }
 
 void I_SetSfxVolume(int volume)
@@ -439,7 +451,7 @@ int I_StartSound(int id,
 				 int pitch,
 				 int priority)
 {
-
+	return;
 	// UNUSED
 	priority = 0;
 
@@ -496,6 +508,7 @@ int I_SoundIsPlaying(int handle)
 //
 void I_UpdateSound(void)
 {
+	return;
 #ifdef SNDINTR
 	// Debug. Count buffer misses with interrupt.
 	static int misses = 0;
@@ -550,8 +563,8 @@ void I_UpdateSound(void)
 				//  for this channel (sound)
 				//  to the current data.
 				// Adjust volume accordingly.
-				dl += channelleftvol_lookup[chan][sample];
-				dr += channelrightvol_lookup[chan][sample];
+				//dl += channelleftvol_lookup[chan][sample];
+				//dr += channelrightvol_lookup[chan][sample];
 				// Increment index ???
 				channelstepremainder[chan] += channelstep[chan];
 				// MSB is next sample???
@@ -677,6 +690,7 @@ void I_ShutdownSound(void)
 	return;
 }
 
+#if 0
 void I_InitSound()
 {
 #ifdef SNDSERV
@@ -763,6 +777,40 @@ void I_InitSound()
 
 #endif
 }
+#endif
+
+void I_InitSound() {
+	
+	int i;
+
+	// Initialize external data (all sounds) at start, keep static.
+	fprintf(stderr, "I_InitSound: ");
+
+	for (i = 1; i < NUMSFX; i++)
+	{
+		// Alias? Example is the chaingun sound linked to pistol.
+		if (!S_sfx[i].link)
+		{
+			// Load data from WAD file.
+			S_sfx[i].data = getsfx(S_sfx[i].name, &lengths[i]);
+		}
+		else
+		{
+			// Previously loaded already?
+			S_sfx[i].data = S_sfx[i].link->data;
+			lengths[i] = lengths[(S_sfx[i].link - S_sfx) / sizeof(sfxinfo_t)];
+		}
+	}
+
+	fprintf(stderr, " pre-cached all sound data\n");
+
+	// Now initialize mixbuffer with zero.
+	for (i = 0; i < MIXBUFFERSIZE; i++)
+		mixbuffer[i] = 0;
+
+	// Finished initialization.
+	fprintf(stderr, "I_InitSound: sound module ready\n");
+}
 
 //
 // MUSIC API.
@@ -839,6 +887,7 @@ typedef sigset_t tSigSet;
 typedef int tSigSet;
 #endif
 
+#if 0
 // We might use SIGVTALRM and ITIMER_VIRTUAL, if the process
 //  time independend timer happens to get lost due to heavy load.
 // SIGALRM and ITIMER_REAL doesn't really work well.
@@ -846,6 +895,7 @@ typedef int tSigSet;
 static int /*__itimer_which*/ itimer = ITIMER_REAL;
 
 static int sig = SIGALRM;
+#endif
 
 // Interrupt handler.
 void I_HandleSoundTimer(int ignore)
@@ -871,6 +921,7 @@ void I_HandleSoundTimer(int ignore)
 	return;
 }
 
+#if 0
 // Get the interrupt. Set duration in millisecs.
 int I_SoundSetTimer(int duration_of_tick)
 {
@@ -907,6 +958,12 @@ int I_SoundSetTimer(int duration_of_tick)
 		fprintf(stderr, "I_SoundSetTimer: interrupt n.a.\n");
 
 	return res;
+}
+#endif
+
+int I_SoundSetTimer(int duration_of_tick)
+{
+
 }
 
 // Remove the interrupt. Set duration to zero.

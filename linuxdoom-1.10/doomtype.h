@@ -1,3 +1,7 @@
+/**
+ * MOD
+ * include limits, not only for linux
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -39,9 +43,10 @@ typedef unsigned char byte;
 #endif
 
 // Predefined with some OS.
-#ifdef LINUX
-#include <values.h>
-#else
+//#ifdef LINUX
+//#include <values.h>
+#include <limits.h>
+//#else
 #define MAXCHAR ((char)0x7f)
 #define MAXSHORT ((short)0x7fff)
 
@@ -55,7 +60,7 @@ typedef unsigned char byte;
 // Max negative 32-bit integer.
 #define MININT ((int)0x80000000)
 #define MINLONG ((long)0x80000000)
-#endif
+//#endif
 
 #endif
 //-----------------------------------------------------------------------------

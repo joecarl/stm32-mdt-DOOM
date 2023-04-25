@@ -1,3 +1,7 @@
+/**
+ * MOD
+ * lumpinfo_t def hack explained in place
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -49,6 +53,7 @@ typedef struct
 //
 // WADFILE I/O related stuff.
 //
+/*
 typedef struct
 {
 	char name[8];
@@ -56,6 +61,15 @@ typedef struct
 	int position;
 	int size;
 } lumpinfo_t;
+*/
+//hack lumpinfo struct to have the same struct as fileinfo so it fits and we can get rid of a big realloc since we are using a single wwd in this port
+typedef struct
+{
+	int position;
+	int size;
+	char name[8];
+} lumpinfo_t;
+
 
 extern void **lumpcache;
 extern lumpinfo_t *lumpinfo;

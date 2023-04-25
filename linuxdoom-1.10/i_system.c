@@ -1,3 +1,12 @@
+/**
+ * MOD
+ * include sdram dirver
+ * implement I_ZoneBase mod to allocate memory in the sdram
+ * implement I_GetTime mod to use HAL_GetTick
+ * implement MDT_Init to initialize the video driver at startup
+ * implement I_WaitVBL mod to use HAL_Delay
+ * implement I_Error mod to show error on screen
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -45,7 +54,11 @@ static const char
 #endif
 #include "i_system.h"
 
-int mb_used = 6;
+#ifndef USE_PC_PORT
+#include "mdt/drivers/sdram_driver.h"
+#endif
+
+int mb_used = 7;
 
 void I_Tactile(int on,
 			   int off,
@@ -69,7 +82,14 @@ int I_GetHeapSize(void)
 byte *I_ZoneBase(int *size)
 {
 	*size = mb_used * 1024 * 1024;
+	#ifdef USE_PC_PORT
 	return (byte *)malloc(*size);
+	#else
+	MDT_SDRAM_Init();	
+	byte* ptr = (byte*) MDT_SDRAM_malloc(*size);
+	memset(ptr, 0, *size);
+	return ptr;
+	#endif
 }
 
 //
@@ -78,6 +98,7 @@ byte *I_ZoneBase(int *size)
 //
 int I_GetTime(void)
 {
+#ifdef USE_PC_PORT
 	struct timeval tp;
 	struct timezone tzp;
 	int newtics;
@@ -88,7 +109,34 @@ int I_GetTime(void)
 		basetime = tp.tv_sec;
 	newtics = (tp.tv_sec - basetime) * TICRATE + tp.tv_usec * TICRATE / 1000000;
 	return newtics;
+#else
+	return HAL_GetTick() * TICRATE / 1000;
+#endif
 }
+
+#ifndef USE_PC_PORT
+#include "mdt/graphics.h"
+#include "mdt/text.h"
+void MDT_Init() {
+	
+	MDT_GRAPHICS_InitTypeDef graphicsCfg = {
+		.useHardwareAcceleration = true,
+		.useSDRAM = false,
+		.mainCtxHeight = SCREENHEIGHT,
+		.mainCtxWidth = SCREENWIDTH,
+		.videoDriver = VIDEO_DRIVER_VGA,
+	};
+	MDT_GRAPHICS_Init(&graphicsCfg);
+	MDT_Clear(0x00);
+	MDT_DrawText(
+		"STM32 DOOM.\n"
+		"Please wait while WAD extracts...\n",
+		10, 10, 0b0111001
+	);
+	MDT_SwapBuffers();
+
+}
+#endif
 
 //
 // I_Init
@@ -114,6 +162,9 @@ void I_Quit(void)
 
 void I_WaitVBL(int count)
 {
+#ifndef USE_PC_PORT
+	HAL_Delay(count * (1000 / 70));
+#else
 #ifdef SGI
 	sginap(1);
 #else
@@ -121,6 +172,7 @@ void I_WaitVBL(int count)
 	sleep(0);
 #else
 	usleep(count * (1000000 / 70));
+#endif
 #endif
 #endif
 }
@@ -149,17 +201,24 @@ extern boolean demorecording;
 
 void I_Error(char *error, ...)
 {
+	char errmsg[128];
 	va_list argptr;
 
 	// Message first.
 	va_start(argptr, error);
+	vsprintf(errmsg, error, argptr);
 	fprintf(stderr, "Error: ");
 	vfprintf(stderr, error, argptr);
 	fprintf(stderr, "\n");
 	va_end(argptr);
 
 	fflush(stderr);
-
+#ifndef USE_PC_PORT
+	MDT_Clear(0x00);
+	MDT_DrawText("ERROR", 5, 5, 0b0111001);
+	MDT_DrawText(errmsg, 5, 15, 0b0111001);
+	MDT_SwapBuffers();
+#endif
 	// Shutdown. Here might be other errors.
 	if (demorecording)
 		G_CheckDemoStatus();

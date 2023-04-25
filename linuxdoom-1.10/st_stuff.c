@@ -1159,6 +1159,7 @@ void ST_loadData(void)
 void ST_unloadGraphics(void)
 {
 
+	//return;//esta funcion no es llamada nunca, esta unused... no hay que preocuparse
 	int i;
 
 	// unload the numbers, tall and short
@@ -1412,4 +1413,5 @@ void ST_Init(void)
 	veryfirsttime = 0;
 	ST_loadData();
 	screens[4] = (byte *)Z_Malloc(ST_WIDTH * ST_HEIGHT, PU_STATIC, 0);
+	//memset(screens[4], 0, ST_WIDTH * ST_HEIGHT);
 }

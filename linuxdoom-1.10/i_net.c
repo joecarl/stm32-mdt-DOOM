@@ -1,3 +1,11 @@
+/**
+ * MOD
+ * the original implementation was commented out
+ * all functions were reimplemented:
+ *   I_InitNetwork is an extract of the original
+ *   the rest are just placeholders
+ */
+#if 0
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -326,3 +334,164 @@ void I_NetCmd(void)
 	else
 		I_Error("Bad net cmd: %i\n", doomcom->command);
 }
+
+#endif 
+
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+#include <errno.h>
+
+#include "i_system.h"
+#include "d_event.h"
+#include "d_net.h"
+#include "m_argv.h"
+
+#include "doomstat.h"
+
+#ifdef __GNUG__
+#pragma implementation "i_net.h"
+#endif
+#include "i_net.h"
+
+// For some odd reason...
+#define ntohl(x)                                                        \
+	((unsigned long int)((((unsigned long int)(x)&0x000000ffU) << 24) | \
+						 (((unsigned long int)(x)&0x0000ff00U) << 8) |  \
+						 (((unsigned long int)(x)&0x00ff0000U) >> 8) |  \
+						 (((unsigned long int)(x)&0xff000000U) >> 24)))
+
+#define ntohs(x)                                                    \
+	((unsigned short int)((((unsigned short int)(x)&0x00ff) << 8) | \
+						  (((unsigned short int)(x)&0xff00) >> 8)))
+
+#define htonl(x) ntohl(x)
+#define htons(x) ntohs(x)
+
+void NetSend(void);
+boolean NetListen(void);
+
+//
+// NETWORKING
+//
+
+int DOOMPORT = 0;//(IPPORT_USERRESERVED + 0x1d);
+
+int sendsocket;
+int insocket;
+
+//struct sockaddr_in sendaddress[MAXNETNODES];
+
+void (*netget)(void);
+void (*netsend)(void);
+
+//
+// UDPsocket
+//
+int UDPsocket(void)
+{
+
+}
+
+//
+// BindToLocalPort
+//
+void BindToLocalPort(int s,
+					 int port)
+{
+
+}
+
+//
+// PacketSend
+//
+void PacketSend(void)
+{
+
+}
+
+//
+// PacketGet
+//
+void PacketGet(void)
+{
+
+}
+
+int GetLocalAddress(void)
+{
+	return 0;
+}
+
+//
+// I_InitNetwork
+//
+void I_InitNetwork(void)
+{
+	boolean trueval = true;
+	int i;
+	int p;
+	struct hostent *hostentry; // host information entry
+
+	doomcom = malloc(sizeof(*doomcom));
+	memset(doomcom, 0, sizeof(*doomcom));
+
+	// set up for network
+	i = M_CheckParm("-dup");
+	if (i && i < myargc - 1)
+	{
+		doomcom->ticdup = myargv[i + 1][0] - '0';
+		if (doomcom->ticdup < 1)
+			doomcom->ticdup = 1;
+		if (doomcom->ticdup > 9)
+			doomcom->ticdup = 9;
+	}
+	else
+		doomcom->ticdup = 1;
+
+	if (M_CheckParm("-extratic"))
+		doomcom->extratics = 1;
+	else
+		doomcom->extratics = 0;
+
+	p = M_CheckParm("-port");
+	if (p && p < myargc - 1)
+	{
+		DOOMPORT = atoi(myargv[p + 1]);
+		printf("using alternate port %i\n", DOOMPORT);
+	}
+
+	// parse network game options,
+	//  -net <consoleplayer> <host> <host> ...
+	i = M_CheckParm("-net");
+	if (!i)
+	{
+		// single player game
+		netgame = false;
+		doomcom->id = DOOMCOM_ID;
+		doomcom->numplayers = doomcom->numnodes = 1;
+		doomcom->deathmatch = false;
+		doomcom->consoleplayer = 0;
+		return;
+	}
+
+	netsend = PacketSend;
+	netget = PacketGet;
+	netgame = true;
+
+	// parse player number and host list
+	doomcom->consoleplayer = myargv[i + 1][0] - '1';
+
+	doomcom->numnodes = 1; // this node for sure
+
+	doomcom->id = DOOMCOM_ID;
+	doomcom->numplayers = doomcom->numnodes;
+
+	
+}
+
+void I_NetCmd(void)
+{
+}
+

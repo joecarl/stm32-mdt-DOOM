@@ -1,3 +1,8 @@
+/**
+ * MOD
+ * place viewangletox, scalelight and zlight at ccmram section
+ * and const to finecosine
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -84,7 +89,7 @@ angle_t clipangle;
 // maps the visible view angles to screen X coordinates,
 // flattening the arc to a flat projection plane.
 // There will be many angles mapped to the same X.
-int viewangletox[FINEANGLES / 2];
+int viewangletox[FINEANGLES / 2] __attribute__((section(".ccmram")));
 
 // The xtoviewangleangle[] table maps a screen pixel
 // to the lowest viewangle that maps back to x ranges
@@ -98,11 +103,11 @@ angle_t xtoviewangle[SCREENWIDTH + 1];
 // fixed_t		finetangent[FINEANGLES/2];
 
 // fixed_t		finesine[5*FINEANGLES/4];
-fixed_t *finecosine = &finesine[FINEANGLES / 4];
+const fixed_t *finecosine = &finesine[FINEANGLES / 4];
 
-lighttable_t *scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
+lighttable_t *scalelight[LIGHTLEVELS][MAXLIGHTSCALE] __attribute__((section(".ccmram")));
 lighttable_t *scalelightfixed[MAXLIGHTSCALE];
-lighttable_t *zlight[LIGHTLEVELS][MAXLIGHTZ];
+lighttable_t *zlight[LIGHTLEVELS][MAXLIGHTZ] __attribute__((section(".ccmram")));
 
 // bumped light from gun blasts
 int extralight;

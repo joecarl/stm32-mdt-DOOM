@@ -1,3 +1,7 @@
+/**
+ * MOD
+ * discard the entire file for the STM version, for obvious reasons
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -20,7 +24,7 @@
 //	Main program, simply calls D_DoomMain high level loop.
 //
 //-----------------------------------------------------------------------------
-
+#ifdef USE_PC_PORT
 static const char
 	rcsid[] = "$Id: i_main.c,v 1.4 1997/02/03 22:45:10 b1 Exp $";
 
@@ -39,3 +43,4 @@ int main(int argc,
 
 	return 0;
 }
+#endif

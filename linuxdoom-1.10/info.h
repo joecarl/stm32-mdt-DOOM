@@ -1,3 +1,7 @@
+/**
+ * MOD
+ * adapt to he mods applied to info.c
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -1154,7 +1158,8 @@ typedef struct
 	long misc1, misc2;
 } state_t;
 
-extern state_t states[NUMSTATES];
+//extern state_t states[NUMSTATES];
+extern state_t *states;
 extern char *sprnames[NUMSPRITES];
 
 typedef enum
@@ -1329,7 +1334,8 @@ typedef struct
 
 } mobjinfo_t;
 
-extern mobjinfo_t mobjinfo[NUMMOBJTYPES];
+//extern mobjinfo_t mobjinfo[NUMMOBJTYPES];
+extern mobjinfo_t *mobjinfo;
 
 #endif
 //-----------------------------------------------------------------------------

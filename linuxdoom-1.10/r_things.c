@@ -1,3 +1,8 @@
+/**
+ * MOD
+ * place vissprites at ccmram section
+ * use a safe loop condition at R_InitSpriteDefs
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -174,7 +179,7 @@ void R_InitSpriteDefs(char **namelist)
 
 	// count the number of sprite names
 	check = namelist;
-	while (*check != NULL)
+	while (check - namelist < NUMSPRITES && *check != NULL)
 		check++;
 
 	numsprites = check - namelist;
@@ -269,7 +274,7 @@ void R_InitSpriteDefs(char **namelist)
 //
 // GAME FUNCTIONS
 //
-vissprite_t vissprites[MAXVISSPRITES];
+vissprite_t vissprites[MAXVISSPRITES] __attribute__((section(".ccmram")));
 vissprite_t *vissprite_p;
 int newvissprite;
 

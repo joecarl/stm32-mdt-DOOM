@@ -1,3 +1,7 @@
+##
+# MOD
+# this file is used only for building the pc version
+# add liballeg and brotli and other minor fixes
 ################################################################
 #
 # $Id:$
@@ -6,9 +10,10 @@
 #
 CC=  gcc  # gcc or g++
 
-CFLAGS=-g -Wall -DNORMALUNIX -DLINUX # -DUSEASM 
+CFLAGS=-m32 -g -Wall -DNORMALUNIX -DLINUX -DUSE_PC_PORT# -DUSEASM 
 LDFLAGS=-L/usr/X11R6/lib
-LIBS=-lXext -lX11 -lnsl -lm
+#LIBS=-lXext -lX11 -lnsl -lm
+LIBS=-lm -lallegro -lallegro_image -lallegro_main -lallegro_ttf -lallegro_primitives -lallegro_audio -lallegro_font
 
 # subdirectory for objects
 O=linux
@@ -75,20 +80,36 @@ OBJS=				\
 		$(O)/s_sound.o		\
 		$(O)/z_zone.o			\
 		$(O)/info.o				\
-		$(O)/sounds.o
+		$(O)/sounds.o          \
+		$(O)/brotli/common/constants.o          \
+		$(O)/brotli/common/context.o            \
+		$(O)/brotli/common/dictionary.o         \
+		$(O)/brotli/common/platform.o           \
+		$(O)/brotli/common/shared_dictionary.o  \
+		$(O)/brotli/common/transform.o          \
+		$(O)/brotli/dec/bit_reader.o            \
+		$(O)/brotli/dec/decode.o                \
+		$(O)/brotli/dec/huffman.o               \
+		$(O)/brotli/dec/state.o                 \
 
-all:	 $(O)/linuxxdoom
+all:	dirs $(O)/linuxxdoom
+
+dirs:
+	mkdir -p $(O)/brotli/common
+	mkdir -p $(O)/brotli/dec
 
 clean:
 	rm -f *.o *~ *.flc
-	rm -f linux/*
+	rm -f linux/*.o
+	rm -rf linux/brotli
+	rm -f linux/linuxxdoom.exe
 
 $(O)/linuxxdoom:	$(OBJS) $(O)/i_main.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/i_main.o \
 	-o $(O)/linuxxdoom $(LIBS)
 
 $(O)/%.o:	%.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@ -Ibrotli/include
 
 #############################################################
 #

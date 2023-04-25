@@ -1,3 +1,7 @@
+/**
+ * MOD
+ * place drawsegs at ccmram section
+ */
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -46,7 +50,7 @@ line_t *linedef;
 sector_t *frontsector;
 sector_t *backsector;
 
-drawseg_t drawsegs[MAXDRAWSEGS];
+drawseg_t drawsegs[MAXDRAWSEGS] __attribute__((section(".ccmram")));
 drawseg_t *ds_p;
 
 void R_StoreWallRange(int start,

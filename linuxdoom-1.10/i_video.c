@@ -1,3 +1,8 @@
+/**
+ * MOD
+ * this file was fully reimplementd, using MDT for the STM version, and liballeg for PC
+ */
+#if 0
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
@@ -1046,4 +1051,553 @@ void Expand4(unsigned *lineptr,
 		xline += step;
 	} while (y--);
 }
+#endif
 
+
+#include <stdlib.h>
+#include <stdarg.h>
+#include <sys/types.h>
+#include <signal.h>
+
+//#include "doomstat.h"
+#include "i_system.h"
+#include "v_video.h"
+#include "m_argv.h"
+#include "d_main.h"
+
+#include "doomdef.h"
+
+#define POINTER_WARP_COUNTDOWN 1
+
+int X_screen;
+int X_width;
+int X_height;
+
+// MIT SHared Memory extension.
+boolean doShm;
+
+// Fake mouse handling.
+// This cannot work properly w/o DGA.
+// Needs an invisible mouse cursor at least.
+boolean grabMouse = true;
+int doPointerWarp = POINTER_WARP_COUNTDOWN;
+
+static int lastmousex = 0;
+static int lastmousey = 0;
+boolean mousemoved = false;
+boolean shmFinished;
+
+int mouse_data1 = 0;
+
+void I_UpdateNoBlit(void) { }
+void I_StartFrame(void) { }
+void I_ReadScreen(byte *scr) { 
+	memcpy(scr, screens[0], SCREENWIDTH * SCREENHEIGHT);
+} 
+
+
+#ifdef USE_PC_PORT
+
+#include "allegro5/allegro.h"
+
+ALLEGRO_DISPLAY *display;
+ALLEGRO_EVENT_QUEUE *event_queue;
+
+void I_InitGraphics(void) {
+	
+	if (!al_init()) {
+		I_Error("Could not init Allegro.");
+	}
+
+	al_install_mouse();
+	al_install_keyboard();
+
+	X_height = SCREENHEIGHT;
+	X_width = SCREENWIDTH;
+
+	//al_set_new_display_flags(ALLEGRO_FULLSCREEN);
+
+	display = al_create_display(X_width, X_height);
+	if (!display) {
+		I_Error("Error creating display");
+	}
+
+	event_queue = al_create_event_queue();
+	if (!event_queue) {
+		I_Error("al_create_event_queue failed");
+	}
+
+	if (grabMouse) {
+		al_grab_mouse(display);
+		al_hide_mouse_cursor(display);
+	}
+
+	al_register_event_source(event_queue, al_get_keyboard_event_source());
+	al_register_event_source(event_queue, al_get_mouse_event_source());
+
+}
+
+void I_ShutdownGraphics(void) {
+
+	al_destroy_display(display);
+	al_destroy_event_queue(event_queue);
+
+}
+
+ALLEGRO_COLOR al_palette[256];
+// Takes full 8 bit values.
+void I_SetPalette(byte *palette) {
+	
+	for (int c = 0; c < 256; c++) {
+		const unsigned char r = gammatable[usegamma][palette[c*3+0]];
+		const unsigned char g = gammatable[usegamma][palette[c*3+1]];
+		const unsigned char b = gammatable[usegamma][palette[c*3+2]];
+		al_palette[c] = al_map_rgb(r, g, b);
+		/*
+		al_palette[c] = al_map_rgb(
+			r & 0b11000000,
+			g & 0b11100000, 
+			b & 0b11100000
+		);
+		*/
+	}
+
+}
+
+
+void I_FinishUpdate(void) {
+
+	ALLEGRO_BITMAP* bkbuff = al_get_backbuffer(display);
+	al_lock_bitmap(bkbuff, al_get_bitmap_format(bkbuff), ALLEGRO_LOCK_WRITEONLY);
+	
+	// draw the image
+	
+	for (int i = 0; i < X_width; i++)
+		for (int j = 0; j < X_height; j++) {
+			const unsigned char c = screens[0][i + j * X_width];
+			al_put_pixel(i, j, al_palette[c]);
+		}
+	
+	al_unlock_bitmap(bkbuff);
+
+	al_flip_display();
+
+}
+
+
+int translate_key(int key) {
+
+	switch (key) {
+	case ALLEGRO_KEY_LEFT:
+		return KEY_LEFTARROW;
+	case ALLEGRO_KEY_RIGHT:
+		return KEY_RIGHTARROW;
+	case ALLEGRO_KEY_DOWN:
+		return KEY_DOWNARROW;
+	case ALLEGRO_KEY_UP:
+		return KEY_UPARROW;
+	case ALLEGRO_KEY_ESCAPE:
+		return KEY_ESCAPE;
+	case ALLEGRO_KEY_ENTER:
+		return KEY_ENTER;
+	case ALLEGRO_KEY_TAB:
+		return KEY_TAB;
+	case ALLEGRO_KEY_F1:
+		return KEY_F1;	
+	case ALLEGRO_KEY_F2:
+		return KEY_F2;	
+	case ALLEGRO_KEY_F3:
+		return KEY_F3;	
+	case ALLEGRO_KEY_F4:
+		return KEY_F4;	
+	case ALLEGRO_KEY_F5:
+		return KEY_F5;	
+	case ALLEGRO_KEY_F6:
+		return KEY_F6;	
+	case ALLEGRO_KEY_F7:
+		return KEY_F7;	
+	case ALLEGRO_KEY_F8:
+		return KEY_F8;	
+	case ALLEGRO_KEY_F9:
+		return KEY_F9;	
+	case ALLEGRO_KEY_F10:
+		return KEY_F10;
+	case ALLEGRO_KEY_F11:
+		return KEY_F11;
+	case ALLEGRO_KEY_F12:
+		return KEY_F12;
+	case ALLEGRO_KEY_BACKSPACE:
+		return KEY_BACKSPACE;
+	case ALLEGRO_KEY_PAUSE:
+		return KEY_PAUSE;
+	case ALLEGRO_KEY_EQUALS:
+		return KEY_EQUALS;
+	case ALLEGRO_KEY_MINUS:
+		return KEY_MINUS;
+	case ALLEGRO_KEY_RSHIFT:
+		return KEY_RSHIFT;
+	case ALLEGRO_KEY_RCTRL:
+		return KEY_RCTRL;
+	case ALLEGRO_KEY_ALTGR:
+		return KEY_RALT;
+	case ALLEGRO_KEY_SPACE:
+		return ' ';
+	default:
+		if (key >= ALLEGRO_KEY_A && key <= ALLEGRO_KEY_Z)
+			return key - ALLEGRO_KEY_A + 'a';
+		if (key >= ALLEGRO_KEY_0 && key <= ALLEGRO_KEY_9)
+			return key - ALLEGRO_KEY_0 + '0';
+		
+		break;
+	}
+	
+	return 0;
+}
+
+
+void I_GetEvent(void)
+{
+	
+    ALLEGRO_EVENT al_event;
+	event_t event;
+
+    al_wait_for_event(event_queue, &al_event);
+	switch (al_event.type)
+	{
+	case ALLEGRO_EVENT_KEY_DOWN:
+		event.type = ev_keydown;
+		event.data1 = translate_key(al_event.keyboard.keycode);
+		D_PostEvent(&event);
+		// fprintf(stderr, "k");
+		break;
+	case ALLEGRO_EVENT_KEY_UP:
+		event.type = ev_keyup;
+		event.data1 = translate_key(al_event.keyboard.keycode);
+		D_PostEvent(&event);
+		// fprintf(stderr, "ku");
+		break;
+	case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
+		mouse_data1 = 
+			(al_event.mouse.button == 1 ? 1 : 0) | 
+			(al_event.mouse.button == 2 ? 2 : 0) | 
+			(al_event.mouse.button == 3 ? 4 : 0);
+		event.type = ev_mouse;
+		event.data1 = mouse_data1;
+		event.data2 = event.data3 = 0;
+		D_PostEvent(&event);
+		// fprintf(stderr, "b");
+		break;
+	case ALLEGRO_EVENT_MOUSE_BUTTON_UP:
+		mouse_data1 ^= 
+			(al_event.mouse.button == 1 ? 1 : 0) | 
+			(al_event.mouse.button == 2 ? 2 : 0) | 
+			(al_event.mouse.button == 3 ? 4 : 0);
+		event.type = ev_mouse;
+		event.data1 = mouse_data1;
+		event.data2 = event.data3 = 0;
+		D_PostEvent(&event);
+		// fprintf(stderr, "bu");
+		break;
+	case ALLEGRO_EVENT_MOUSE_AXES:
+		event.type = ev_mouse;
+		event.data1 = mouse_data1;
+		event.data2 = (al_event.mouse.x - lastmousex) << 4;
+		event.data3 = (lastmousey - al_event.mouse.y) << 2;
+
+		if (event.data2 || event.data3)
+		{
+			lastmousex = al_event.mouse.x;
+			lastmousey = al_event.mouse.y;
+			if (al_event.mouse.x != X_width / 2 &&
+				al_event.mouse.y != X_height / 2)
+			{
+				D_PostEvent(&event);
+				// fprintf(stderr, "m");
+				mousemoved = false;
+			}
+			else
+			{
+				mousemoved = true;
+			}
+		}
+		break;
+	
+	default:
+		
+		break;
+	}
+	
+}
+
+
+//
+// I_StartTic
+//
+void I_StartTic(void)
+{
+
+	if (!display)
+		return;
+
+	while (!al_is_event_queue_empty(event_queue))
+		I_GetEvent();
+
+	// Warp the pointer back to the middle of the window
+	//  or it will wander off - that is, the game will
+	//  loose input focus within X11.
+	if (grabMouse)
+	{
+		if (!--doPointerWarp)
+		{
+			al_set_mouse_xy(display,
+						 X_width / 2, X_height / 2);
+
+			doPointerWarp = POINTER_WARP_COUNTDOWN;
+		}
+	}
+
+	mousemoved = false;
+
+}
+
+#else
+
+#include "mdt/graphics.h"
+#include "mdt/drivers/usb_input.h"
+
+int translate_key(int key) {
+
+	switch (key) {
+	case MDT_KEY_LEFTARROW:
+		return KEY_LEFTARROW;
+	case MDT_KEY_RIGHTARROW:
+		return KEY_RIGHTARROW;
+	case MDT_KEY_DOWNARROW:
+		return KEY_DOWNARROW;
+	case MDT_KEY_UPARROW:
+		return KEY_UPARROW;
+	case MDT_KEY_ESCAPE:
+		return KEY_ESCAPE;
+	case MDT_KEY_ENTER:
+		return KEY_ENTER;
+	case MDT_KEY_TAB:
+		return KEY_TAB;
+	case MDT_KEY_F1:
+		return KEY_F1;	
+	case MDT_KEY_F2:
+		return KEY_F2;	
+	case MDT_KEY_F3:
+		return KEY_F3;	
+	case MDT_KEY_F4:
+		return KEY_F4;	
+	case MDT_KEY_F5:
+		return KEY_F5;	
+	case MDT_KEY_F6:
+		return KEY_F6;	
+	case MDT_KEY_F7:
+		return KEY_F7;	
+	case MDT_KEY_F8:
+		return KEY_F8;	
+	case MDT_KEY_F9:
+		return KEY_F9;	
+	case MDT_KEY_F10:
+		return KEY_F10;
+	case MDT_KEY_F11:
+		return KEY_F11;
+	case MDT_KEY_F12:
+		return KEY_F12;
+	case MDT_KEY_BACKSPACE:
+		return KEY_BACKSPACE;
+	case MDT_KEY_PAUSE:
+		return KEY_PAUSE;
+	case MDT_KEY_EQUAL_PLUS:
+		return KEY_EQUALS;
+	case MDT_KEY_MINUS_UNDERSCORE:
+		return KEY_MINUS;
+	case MDT_KEY_RIGHTSHIFT:
+		return KEY_RSHIFT;
+	case MDT_KEY_RIGHTCONTROL:
+		return KEY_RCTRL;
+	case MDT_KEY_RIGHTALT:
+		return KEY_RALT;
+	case MDT_KEY_SPACEBAR:
+		return ' ';
+	case MDT_KEY_0:
+		return '0';
+	default:
+		if (key >= MDT_KEY_A && key <= MDT_KEY_Z)
+			return key - MDT_KEY_A + 'a';
+		if (key >= MDT_KEY_1 && key <= MDT_KEY_9)
+			return key - MDT_KEY_1 + '1';
+		
+		break;
+	}
+	
+	return 0;
+}
+
+
+MDT_EVENT_QUEUE event_queue;
+
+void I_GetEvent(void)
+{
+	
+    MDT_EVENT mdt_event;
+	event_t event;
+
+    MDT_USB_INPUT_EVENTS_WaitForEvent(&event_queue, &mdt_event);
+	switch (mdt_event.type)
+	{
+	case MDT_EVENT_KEY_DOWN:
+		event.type = ev_keydown;
+		event.data1 = translate_key(mdt_event.keyboard.keycode);
+		D_PostEvent(&event);
+		// fprintf(stderr, "k");
+		break;
+	case MDT_EVENT_KEY_UP:
+		event.type = ev_keyup;
+		event.data1 = translate_key(mdt_event.keyboard.keycode);
+		D_PostEvent(&event);
+		// fprintf(stderr, "ku");
+		break;
+	case MDT_EVENT_MOUSE_BUTTON_DOWN:
+		mouse_data1 = 
+			(mdt_event.mouse.button == 1 ? 1 : 0) | 
+			(mdt_event.mouse.button == 2 ? 2 : 0) | 
+			(mdt_event.mouse.button == 3 ? 4 : 0);
+		event.type = ev_mouse;
+		event.data1 = mouse_data1;
+		event.data2 = event.data3 = 0;
+		D_PostEvent(&event);
+		// fprintf(stderr, "b");
+		break;
+	case MDT_EVENT_MOUSE_BUTTON_UP:
+		mouse_data1 ^= 
+			(mdt_event.mouse.button == 1 ? 1 : 0) | 
+			(mdt_event.mouse.button == 2 ? 2 : 0) | 
+			(mdt_event.mouse.button == 3 ? 4 : 0);
+		event.type = ev_mouse;
+		event.data1 = mouse_data1;
+		event.data2 = event.data3 = 0;
+		D_PostEvent(&event);
+		// fprintf(stderr, "bu");
+		break;
+	case MDT_EVENT_MOUSE_AXES:
+		event.type = ev_mouse;
+		event.data1 = mouse_data1;
+		event.data2 = (mdt_event.mouse.x - lastmousex) << 4;
+		event.data3 = (lastmousey - mdt_event.mouse.y) << 2;
+
+		if (event.data2 || event.data3)
+		{
+			lastmousex = mdt_event.mouse.x;
+			lastmousey = mdt_event.mouse.y;
+			if (mdt_event.mouse.x != X_width / 2 &&
+				mdt_event.mouse.y != X_height / 2)
+			{
+				D_PostEvent(&event);
+				// fprintf(stderr, "m");
+				mousemoved = false;
+			}
+			else
+			{
+				mousemoved = true;
+			}
+		}
+		break;
+	
+	default:
+		
+		break;
+	}
+	
+}
+
+
+//
+// I_StartTic
+//
+void I_StartTic(void)
+{
+
+	//if (!X_display)
+	//	return;
+
+	while (!MDT_USB_INPUT_EVENTS_IsQueueEmpty(&event_queue))
+		I_GetEvent();
+
+	// Warp the pointer back to the middle of the window
+	//  or it will wander off - that is, the game will
+	//  loose input focus within X11.
+	if (grabMouse)
+	{
+		if (!--doPointerWarp)
+		{
+			//TODO: warp pointer
+
+			doPointerWarp = POINTER_WARP_COUNTDOWN;
+		}
+	}
+
+	mousemoved = false;
+
+}
+
+uint8_t mdt_palette[256];
+// Takes full 8 bit values.
+void I_SetPalette(byte *palette) {
+	
+	for (int c = 0; c < 256; c++) {
+		const unsigned char r = gammatable[usegamma][*palette++];
+		const unsigned char g = gammatable[usegamma][*palette++];
+		const unsigned char b = gammatable[usegamma][*palette++];
+		mdt_palette[c] = 
+			((r >> 0) & 0b11000000) | 
+			((g >> 2) & 0b00111000) | 
+			((b >> 5) & 0b00000111);
+	}
+
+}
+//
+// I_FinishUpdate
+//
+void I_FinishUpdate(void)
+{
+
+	// draw the image
+	const uint16_t screen_size = X_width * X_height;
+	byte* scr = screens[0];
+	
+	for (int i = 0; i < screen_size; i++) {
+		//scr[i] = mdt_palette[scr[i]];
+		main_ctx.bkbuff[i] = mdt_palette[scr[i]];
+	}
+	
+	MDT_WaitForVSync();
+	MDT_SwapBuffers();
+	
+	//screens[0] = (unsigned char *)(main_ctx.bkbuff);
+
+}
+
+
+void I_InitGraphics(void)
+{
+	
+
+	
+	MDT_USB_INPUT_Init();
+	MDT_USB_INPUT_EVENTS_SetQueue(&event_queue);
+
+	X_width = SCREENWIDTH;
+	X_height = SCREENHEIGHT;
+
+	//screens[0] = (unsigned char *)(main_ctx.bkbuff);
+
+}
+
+void I_ShutdownGraphics(void) {
+
+}
+
+#endif
